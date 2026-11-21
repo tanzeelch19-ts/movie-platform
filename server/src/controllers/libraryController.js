@@ -1,16 +1,20 @@
-import { db } from '../services/db.js'
+import { getMovieCollection } from '../services/db.js'
 import { httpError } from '../middleware/errorHandler.js'
 
 const PAGE_SIZE = 20
 
 const SORTS = {
-  rating: (a, b) => b.rating - a.rating || b.voteCount - a.voteCount,
-  newest: (a, b) => (b.releaseDate || '').localeCompare(a.releaseDate || ''),
-  title: (a, b) => a.title.localeCompare(b.title),
+  rating: { rating: -1, voteCount: -1 },
+  newest: { releaseDate: -1 },
+  title: { title: 1 },
 }
 
-export const getLibrary = (req, res) => {
-  const q = String(req.query.q || '').trim().toLowerCase()
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+const CARD_FIELDS = { _id: 0, id: 1, title: 1, posterUrl: 1, releaseDate: 1, rating: 1, voteCount: 1, genreIds: 1 }
+
+export const getLibrary = async (req, res) => {
+  const q = String(req.query.q || '').trim().slice(0, 100)
   const genre = req.query.genre ? Number(req.query.genre) : null
   const year = req.query.year ? Number(req.query.year) : null
   const minRating = req.query.minRating ? Number(req.query.minRating) : null
@@ -23,31 +27,25 @@ export const getLibrary = (req, res) => {
     throw httpError(400, 'Minimum rating must be between 0 and 10')
   }
 
-  const matches = db.data.movies.filter(
-    (m) =>
-      (!q || m.title.toLowerCase().includes(q)) &&
-      (genre === null || m.genres.some((g) => g.id === genre)) &&
-      (year === null || m.year === year) &&
-      (minRating === null || m.rating >= minRating)
-  )
+  const filter = {}
+  if (q) filter.title = { $regex: escapeRegex(q), $options: 'i' }
+  if (genre !== null) filter.genreIds = genre
+  if (year !== null) filter.year = year
+  if (minRating !== null) filter.rating = { $gte: minRating }
 
-  const sorted = [...matches].sort(SORTS[sort])
-  const total = sorted.length
-  const totalPages = Math.max(Math.ceil(total / PAGE_SIZE), 1)
-  const slice = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const col = await getMovieCollection()
+  const total = await col.countDocuments(filter)
+  const results = await col
+    .find(filter, { projection: CARD_FIELDS })
+    .sort(SORTS[sort])
+    .skip((page - 1) * PAGE_SIZE)
+    .limit(PAGE_SIZE)
+    .toArray()
 
   res.json({
     page,
-    totalPages,
+    totalPages: Math.max(Math.ceil(total / PAGE_SIZE), 1),
     total,
-    results: slice.map((m) => ({
-      id: m.id,
-      title: m.title,
-      posterUrl: m.posterUrl,
-      releaseDate: m.releaseDate,
-      rating: m.rating,
-      voteCount: m.voteCount,
-      genreIds: m.genreIds,
-    })),
+    results,
   })
 }

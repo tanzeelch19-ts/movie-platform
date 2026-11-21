@@ -9,14 +9,24 @@ import { notFound, errorHandler } from './middleware/errorHandler.js'
 const app = express()
 const isProd = process.env.NODE_ENV === 'production'
 
-// Vercel and other proxies sit in front of the app, so trust the first hop for correct client IPs.
 if (isProd) app.set('trust proxy', 1)
 app.disable('x-powered-by')
 
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
-  .split(',')
-  .map((o) => o.trim().replace(/\/$/, ''))
-  .filter(Boolean)
+// Known frontends are always allowed. CLIENT_URL can add more, comma separated.
+const KNOWN_ORIGINS = [
+  'https://movie-platform-97wq.vercel.app',
+  'https://www.reelist.com',
+  'https://reelist.com',
+  'http://localhost:5173',
+]
+
+const allowedOrigins = [
+  ...new Set(
+    [...KNOWN_ORIGINS, ...(process.env.CLIENT_URL || '').split(',')]
+      .map((o) => o.trim().replace(/\/$/, ''))
+      .filter(Boolean)
+  ),
+]
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
 

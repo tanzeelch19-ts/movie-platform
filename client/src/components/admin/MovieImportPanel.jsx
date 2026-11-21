@@ -10,14 +10,15 @@ const sources = [
   { value: 'upcoming', label: 'Coming soon' },
 ]
 
-const pageOptions = [1, 2, 3, 5, 10]
+const pageOptions = [5, 10, 25, 50, 100]
 
 export default function MovieImportPanel() {
   const toast = useToast()
   const [status, setStatus] = useState(null)
   const [source, setSource] = useState('top_rated')
-  const [pages, setPages] = useState(2)
+  const [pages, setPages] = useState(50)
   const [running, setRunning] = useState(false)
+  const [progress, setProgress] = useState('')
   const [lastResult, setLastResult] = useState(null)
 
   const loadStatus = () => api.get('/admin/movies/status').then((res) => setStatus(res.data))
@@ -26,23 +27,45 @@ export default function MovieImportPanel() {
     loadStatus().catch((err) => toast(err.message, 'error'))
   }, [toast])
 
+  // Each call imports 5 TMDB pages (100 movies). The loop keeps calling until the target is reached.
   const runImport = async () => {
+    const target = Number(pages)
+    const totals = { found: 0, added: 0, updated: 0, failed: 0 }
+    let startPage = 1
+
     setRunning(true)
     setLastResult(null)
+    setProgress('Starting...')
+
     try {
-      // Imports make many TMDB calls, so allow more time than the default request timeout.
-      const { data } = await api.post(
-        '/admin/movies/seed',
-        { source, pages: Number(pages) },
-        { timeout: 180000 }
-      )
-      setLastResult(data)
-      toast(`Import complete: ${data.added} added, ${data.updated} updated.`)
+      while (true) {
+        const { data } = await api.post(
+          '/admin/movies/import',
+          { source, startPage, pages: 5 },
+          { timeout: 120000 }
+        )
+
+        totals.found += data.found
+        totals.added += data.added
+        totals.updated += data.updated
+        totals.failed += data.failed
+        setProgress(`Page ${data.toPage} of ${target} · ${totals.added + totals.updated} movies saved`)
+
+        if (data.done || data.toPage >= target) {
+          setLastResult({ ...totals, total: data.totalMovies })
+          break
+        }
+        startPage = data.nextPage
+      }
+
+      toast(`Import complete: ${totals.added} added, ${totals.updated} updated.`)
       await loadStatus()
     } catch (err) {
-      toast(err.message, 'error')
+      toast(`${err.message}. Movies saved so far are kept, you can run the import again.`, 'error')
+      await loadStatus().catch(() => {})
     } finally {
       setRunning(false)
+      setProgress('')
     }
   }
 
@@ -83,10 +106,16 @@ export default function MovieImportPanel() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+      <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
         <div className="space-y-1.5">
           <label htmlFor="import-source" className="text-sm font-medium">Source</label>
-          <select id="import-source" value={source} onChange={(e) => setSource(e.target.value)} className="input">
+          <select
+            id="import-source"
+            value={source}
+            onChange={(e) => setSource(e.target.value)}
+            disabled={running}
+            className="input"
+          >
             {sources.map((s) => (
               <option key={s.value} value={s.value}>
                 {s.label}
@@ -96,16 +125,17 @@ export default function MovieImportPanel() {
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="import-pages" className="text-sm font-medium">Pages (20 movies each)</label>
+          <label htmlFor="import-pages" className="text-sm font-medium">How many movies</label>
           <select
             id="import-pages"
             value={pages}
             onChange={(e) => setPages(e.target.value)}
-            className="input sm:w-44"
+            disabled={running}
+            className="input"
           >
             {pageOptions.map((p) => (
               <option key={p} value={p}>
-                {p} ({p * 20} movies)
+                {p * 20} movies
               </option>
             ))}
           </select>
@@ -117,7 +147,13 @@ export default function MovieImportPanel() {
         </button>
       </div>
 
-      {lastResult && (
+      {running && (
+        <p className="rounded-xl border border-accent/20 bg-accent/5 p-3 text-sm text-zinc-600 dark:text-zinc-300">
+          {progress}. Ye page band na karein, import chal raha hai.
+        </p>
+      )}
+
+      {lastResult && !running && (
         <p className="rounded-xl border border-green-500/20 bg-green-500/10 p-3 text-sm text-green-600">
           Found {lastResult.found}: {lastResult.added} added, {lastResult.updated} updated, {lastResult.failed} failed.
           Library total: {lastResult.total}.

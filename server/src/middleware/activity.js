@@ -7,7 +7,7 @@ const clientIp = (req) => req.ip || req.socket?.remoteAddress || ''
 export function titleFor(movieId) {
   const id = String(movieId)
   const hit =
-    db.data.movies.find((m) => String(m.id) === id) ||
+    
     db.data.watchlist.find((m) => m.movieId === id) ||
     db.data.watched.find((m) => m.movieId === id) ||
     db.data.reviews.find((m) => m.movieId === id) ||

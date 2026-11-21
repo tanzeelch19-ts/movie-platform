@@ -1,5 +1,5 @@
-import { db } from './db.js'
 import { tmdb, poster } from './tmdb.js'
+import { upsertMovies, getMovieCollection } from './db.js'
 import { httpError } from '../middleware/errorHandler.js'
 
 const SOURCES = {
@@ -9,7 +9,10 @@ const SOURCES = {
   upcoming: '/movie/upcoming',
 }
 
-const MAX_PAGES = 10
+// One call fetches at most this many list pages (20 movies each), so it finishes within the serverless time limit.
+const PAGES_PER_CALL = 5
+// TMDB lists stop at page 500.
+const TMDB_PAGE_LIMIT = 500
 const CONCURRENCY = 5
 
 const toRecord = (m) => {
@@ -17,7 +20,7 @@ const toRecord = (m) => {
   const genres = (m.genres || []).map((g) => ({ id: g.id, name: g.name }))
 
   return {
-    id: m.id,
+    id: Number(m.id),
     title: m.title,
     tagline: m.tagline || '',
     overview: m.overview || '',
@@ -42,59 +45,53 @@ const toRecord = (m) => {
   }
 }
 
-export async function seedMovies({ source = 'top_rated', pages = 1 }) {
-  const path = SOURCES[source]
-  if (!path) throw httpError(400, `Unknown source. Use one of: ${Object.keys(SOURCES).join(', ')}`)
+// Imports a few list pages starting at startPage. The client calls this again with nextPage until done.
+export async function importMovies({ source = 'top_rated', startPage = 1, pages = PAGES_PER_CALL }) {
+  const listPath = SOURCES[source]
+  if (!listPath) throw httpError(400, `Unknown source. Use one of: ${Object.keys(SOURCES).join(', ')}`)
 
-  const pageCount = Math.min(Math.max(Number(pages) || 1, 1), MAX_PAGES)
+  const from = Math.max(Number(startPage) || 1, 1)
+  const span = Math.min(Math.max(Number(pages) || 1, 1), PAGES_PER_CALL)
 
-  // Collect unique movie ids from the list pages.
   const ids = new Set()
-  for (let page = 1; page <= pageCount; page++) {
-    const data = await tmdb(path, { page })
+  let totalPages = TMDB_PAGE_LIMIT
+  let lastPage = from - 1
+
+  for (let page = from; page < from + span && page <= totalPages; page++) {
+    const data = await tmdb(listPath, { page })
+    totalPages = Math.min(data.total_pages, TMDB_PAGE_LIMIT)
     data.results.forEach((m) => ids.add(m.id))
-    if (page >= data.total_pages) break
+    lastPage = page
   }
 
-  // Fetch full details in small parallel batches to stay under TMDB rate limits.
   const list = [...ids]
-  let added = 0
-  let updated = 0
+  const records = []
   let failed = 0
 
   for (let i = 0; i < list.length; i += CONCURRENCY) {
-    const batch = list.slice(i, i + CONCURRENCY)
     const settled = await Promise.allSettled(
-      batch.map((id) => tmdb(`/movie/${id}`, { append_to_response: 'credits,videos' }))
+      list.slice(i, i + CONCURRENCY).map((id) => tmdb(`/movie/${id}`, { append_to_response: 'credits,videos' }))
     )
-
     for (const result of settled) {
-      if (result.status !== 'fulfilled') {
-        failed++
-        continue
-      }
-      const record = toRecord(result.value)
-      const index = db.data.movies.findIndex((m) => String(m.id) === String(record.id))
-      if (index === -1) {
-        db.data.movies.push(record)
-        added++
-      } else {
-        // Re-importing refreshes ratings and details, without creating duplicates.
-        db.data.movies[index] = record
-        updated++
-      }
+      if (result.status === 'fulfilled') records.push(toRecord(result.value))
+      else failed++
     }
   }
 
-  await db.write()
+  const { added, updated } = await upsertMovies(records)
+  const col = await getMovieCollection()
+  const totalMovies = await col.countDocuments()
 
   return {
     source,
-    pages: pageCount,
+    fromPage: from,
+    toPage: lastPage,
+    nextPage: lastPage + 1,
+    done: lastPage < from || lastPage >= totalPages,
     found: list.length,
     added,
     updated,
     failed,
-    total: db.data.movies.length,
+    totalMovies,
   }
 }

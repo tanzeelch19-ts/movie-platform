@@ -8,7 +8,7 @@ import {
   sendDigest,
 } from '../controllers/adminController.js'
 import { deleteReview } from '../controllers/reviewController.js'
-import { seedFromTmdb, libraryStatus, deleteLibraryMovie } from '../controllers/adminSeedController.js'
+import { importFromTmdb, libraryStatus, deleteLibraryMovie } from '../controllers/adminSeedController.js'
 import { userActivity } from '../controllers/activityController.js'
 import { requireAuth, requireAdmin } from '../middleware/auth.js'
 
@@ -26,7 +26,7 @@ router.delete('/reviews/:id', deleteReview)
 router.post('/digest/send', sendDigest)
 
 router.get('/movies/status', libraryStatus)
-router.post('/movies/seed', seedFromTmdb)
+router.post('/movies/import', importFromTmdb)
 router.delete('/movies/:id', deleteLibraryMovie)
 
 export default router
