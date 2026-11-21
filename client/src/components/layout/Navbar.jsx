@@ -9,6 +9,7 @@ import Avatar from '../common/Avatar'
 const navLinks = [
   { to: '/home', label: 'Home' },
   { to: '/explore', label: 'Explore' },
+  { to: '/library', label: 'Library' },
   { to: '/watchlist', label: 'Watchlist' },
   { to: '/watched', label: 'Watched' },
   { to: '/reviews', label: 'Reviews' },

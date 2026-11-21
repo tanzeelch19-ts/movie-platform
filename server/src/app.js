@@ -3,12 +3,13 @@ import cors from 'cors'
 import helmet from 'helmet'
 import { rateLimit } from 'express-rate-limit'
 import routes from './routes/index.js'
+import { loadStore } from './middleware/loadStore.js'
 import { notFound, errorHandler } from './middleware/errorHandler.js'
 
 const app = express()
 const isProd = process.env.NODE_ENV === 'production'
 
-// Behind Render, Railway or any proxy, trust the first hop so rate limits see the real client IP.
+// Vercel and other proxies sit in front of the app, so trust the first hop for correct client IPs.
 if (isProd) app.set('trust proxy', 1)
 app.disable('x-powered-by')
 
@@ -52,7 +53,7 @@ app.use('/api', apiLimiter)
 app.use('/api/auth/login', authLimiter)
 app.use('/api/auth/register', authLimiter)
 
-app.use('/api', routes)
+app.use('/api', loadStore, routes)
 
 app.use(notFound)
 app.use(errorHandler)

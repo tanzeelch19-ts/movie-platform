@@ -8,6 +8,7 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import HomePage from './pages/HomePage'
 import ExplorePage from './pages/ExplorePage'
+import LibraryPage from './pages/LibraryPage'
 import MovieDetailsPage from './pages/MovieDetailsPage'
 import WatchlistPage from './pages/WatchlistPage'
 import WatchedPage from './pages/WatchedPage'
@@ -35,6 +36,7 @@ export default function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/explore" element={<ExplorePage />} />
+        <Route path="/library" element={<LibraryPage />} />
         <Route path="/movies/:id" element={<MovieDetailsPage />} />
 
         <Route element={<ProtectedRoute />}>

@@ -1,3 +1,3 @@
 export const healthCheck = (req, res) => {
-  res.json({ status: 'ok', storage: 'json-file (data/db.json)' })
+  res.json({ status: 'ok', storage: 'mongodb' })
 }

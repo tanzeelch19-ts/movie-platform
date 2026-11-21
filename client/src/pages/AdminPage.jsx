@@ -4,6 +4,7 @@ import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import Avatar from '../components/common/Avatar'
+import MovieImportPanel from '../components/admin/MovieImportPanel'
 
 const th = 'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500'
 const td = 'px-4 py-3 align-middle text-sm'
@@ -96,6 +97,8 @@ export default function AdminPage() {
       {error && (
         <p className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-500">{error}</p>
       )}
+
+      <MovieImportPanel />
 
       {stats && (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
