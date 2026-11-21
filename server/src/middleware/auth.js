@@ -2,19 +2,33 @@ import jwt from 'jsonwebtoken'
 import { db } from '../services/db.js'
 import { httpError } from './errorHandler.js'
 
-export const requireAuth = (req, res, next) => {
+const readToken = (req) => {
   const header = req.headers.authorization || ''
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null
+  return header.startsWith('Bearer ') ? header.slice(7) : null
+}
+
+export const requireAuth = (req, res, next) => {
+  const token = readToken(req)
   if (!token) throw httpError(401, 'Not authorized, no token')
 
-  let payload
   try {
-    payload = jwt.verify(token, process.env.JWT_SECRET)
+    req.user = jwt.verify(token, process.env.JWT_SECRET)
   } catch {
     throw httpError(401, 'Not authorized, token is invalid')
   }
+  next()
+}
 
-  req.user = payload
+// Attaches req.user when a valid token is present, but never blocks the request.
+export const optionalAuth = (req, res, next) => {
+  const token = readToken(req)
+  if (token) {
+    try {
+      req.user = jwt.verify(token, process.env.JWT_SECRET)
+    } catch {
+      // Invalid token: treat the request as a guest.
+    }
+  }
   next()
 }
 

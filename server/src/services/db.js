@@ -16,6 +16,9 @@ const DEFAULTS = {
   reviews: [],
   collections: [],
   movies: [],
+  logins: [],
+  searches: [],
+  activity: [],
   meta: {},
 }
 

@@ -17,6 +17,7 @@ import RecommendationsPage from './pages/RecommendationsPage'
 import CollectionsPage from './pages/CollectionsPage'
 import CollectionDetailPage from './pages/CollectionDetailPage'
 import ProfilePage from './pages/ProfilePage'
+import ActivityPage from './pages/ActivityPage'
 import SettingsPage from './pages/SettingsPage'
 import AdminPage from './pages/AdminPage'
 
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/collections" element={<CollectionsPage />} />
           <Route path="/collections/:id" element={<CollectionDetailPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/activity" element={<ActivityPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/admin" element={<AdminPage />} />
         </Route>

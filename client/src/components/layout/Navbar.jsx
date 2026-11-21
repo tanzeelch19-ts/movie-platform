@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { ChevronDown, Film, LogOut, Menu, Moon, Search, Settings, Library, Shield, Sun, User, X } from 'lucide-react'
+import { ChevronDown, Film, LogOut, Menu, Moon, Search, Settings, Library, History, Shield, Sun, User, X } from 'lucide-react'
 import { useTheme } from '../../context/ThemeContext'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
@@ -70,6 +70,7 @@ export default function Navbar() {
   const accountItems = [
     { to: '/profile', label: 'Profile', icon: User },
     { to: '/collections', label: 'Collections', icon: Library },
+    { to: '/activity', label: 'Activity', icon: History },
     { to: '/settings', label: 'Settings', icon: Settings },
     ...(user?.role === 'admin' ? [{ to: '/admin', label: 'Admin dashboard', icon: Shield }] : []),
   ]

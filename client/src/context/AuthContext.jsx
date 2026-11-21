@@ -48,9 +48,13 @@ export function AuthProvider({ children }) {
     [saveSession]
   )
 
+  // Records the sign-out on the server, then clears the token once that request is done.
   const logout = useCallback(() => {
-    localStorage.removeItem('token')
     setUser(null)
+    api
+      .post('/activity/logout')
+      .catch(() => {})
+      .finally(() => localStorage.removeItem('token'))
   }, [])
 
   return (

@@ -6,6 +6,7 @@ import listRoutes from './listRoutes.js'
 import reviewRoutes from './reviewRoutes.js'
 import recommendRoutes from './recommendRoutes.js'
 import collectionRoutes from './collectionRoutes.js'
+import activityRoutes from './activityRoutes.js'
 import adminRoutes from './adminRoutes.js'
 import cronRoutes from './cronRoutes.js'
 
@@ -18,6 +19,7 @@ router.use('/lists', listRoutes)
 router.use('/reviews', reviewRoutes)
 router.use('/recommendations', recommendRoutes)
 router.use('/collections', collectionRoutes)
+router.use('/activity', activityRoutes)
 router.use('/admin', adminRoutes)
 router.use('/cron', cronRoutes)
 

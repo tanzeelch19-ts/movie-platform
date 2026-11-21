@@ -7,7 +7,7 @@ export const loadStore = async (req, res, next) => {
     await db.load()
     next()
   } catch (err) {
-    console.error('Database error:', err.message)
+    console.error('Database error:', err.name, err.message)
     next(httpError(503, 'Database is unavailable. Check MONGO_URI and MongoDB Atlas network access.'))
   }
 }

@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import Avatar from '../components/common/Avatar'
 import MovieImportPanel from '../components/admin/MovieImportPanel'
+import UserActivityModal from '../components/admin/UserActivityModal'
 
 const th = 'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500'
 const td = 'px-4 py-3 align-middle text-sm'
@@ -19,6 +20,7 @@ export default function AdminPage() {
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [viewing, setViewing] = useState(null)
 
   const load = () =>
     Promise.all([api.get('/admin/stats'), api.get('/admin/users'), api.get('/admin/reviews')]).then(
@@ -143,7 +145,9 @@ export default function AdminPage() {
                   <td className={td}>
                     <span
                       className={`badge ${
-                        u.role === 'admin' ? 'bg-accent/10 text-accent' : 'bg-zinc-900/5 text-zinc-600 dark:bg-white/10 dark:text-zinc-300'
+                        u.role === 'admin'
+                          ? 'bg-accent/10 text-accent'
+                          : 'bg-zinc-900/5 text-zinc-600 dark:bg-white/10 dark:text-zinc-300'
                       }`}
                     >
                       {u.role}
@@ -151,11 +155,16 @@ export default function AdminPage() {
                   </td>
                   <td className={`${td} text-zinc-500`}>{new Date(u.createdAt).toLocaleDateString()}</td>
                   <td className={td}>
-                    {u.id !== user.id && (
-                      <button onClick={() => deleteUser(u)} className="btn btn-danger px-3 py-1.5 text-xs">
-                        Delete
+                    <div className="flex gap-2">
+                      <button onClick={() => setViewing(u)} className="btn btn-secondary px-3 py-1.5 text-xs">
+                        Activity
                       </button>
-                    )}
+                      {u.id !== user.id && (
+                        <button onClick={() => deleteUser(u)} className="btn btn-danger px-3 py-1.5 text-xs">
+                          Delete
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -188,7 +197,11 @@ export default function AdminPage() {
                     {r.body ? `${r.body.slice(0, 80)}${r.body.length > 80 ? '...' : ''}` : '-'}
                   </td>
                   <td className={td}>
-                    <span className={`badge ${r.hidden ? 'bg-yellow-500/15 text-yellow-600' : 'bg-green-500/15 text-green-600'}`}>
+                    <span
+                      className={`badge ${
+                        r.hidden ? 'bg-yellow-500/15 text-yellow-600' : 'bg-green-500/15 text-green-600'
+                      }`}
+                    >
                       {r.hidden ? 'Hidden' : 'Visible'}
                     </span>
                   </td>
@@ -208,6 +221,8 @@ export default function AdminPage() {
           </table>
         </div>
       </div>
+
+      {viewing && <UserActivityModal user={viewing} onClose={() => setViewing(null)} />}
     </section>
   )
 }

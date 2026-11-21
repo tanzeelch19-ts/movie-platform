@@ -3,6 +3,7 @@ import { Search } from 'lucide-react'
 import api from '../services/api'
 import MovieGrid, { MovieGridSkeleton } from '../components/movies/MovieGrid'
 import EmptyState from '../components/common/EmptyState'
+import RecentSearches from '../components/search/RecentSearches'
 
 const sortOptions = [
   { value: 'popularity.desc', label: 'Most popular' },
@@ -112,6 +113,8 @@ export default function ExplorePage() {
           Search
         </button>
       </form>
+
+      <RecentSearches onPick={(q) => { setInput(q); setQuery(q) }} refreshKey={query} />
 
       {query ? (
         <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-500">
