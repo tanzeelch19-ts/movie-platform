@@ -1,4 +1,5 @@
 import { httpError } from '../middleware/errorHandler.js'
+import { getMovieCollection } from '../services/db.js'
 import { tmdb, toCard, poster } from '../services/tmdb.js'
 
 const paged = (data) => ({
@@ -54,6 +55,11 @@ export const getGenres = async (req, res) => {
 export const getMovieDetails = async (req, res) => {
   const id = req.params.id
   if (!/^\d+$/.test(id)) throw httpError(400, 'Invalid movie id')
+
+  // Movies imported into the library are served from the local collection, without a TMDB call.
+  const col = await getMovieCollection()
+  const local = await col.findOne({ id: Number(id) }, { projection: { _id: 0 } })
+  if (local) return res.json(local)
 
   const data = await tmdb(`/movie/${id}`, { append_to_response: 'credits,videos' })
 
